@@ -1,0 +1,21 @@
+{
+  "name": "github-api-proxy",
+  "version": "1.0.0",
+  "description": "A serverless proxy for GitHub API to protect client secrets",
+  "main": "index.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "keywords": [
+    "azure",
+    "functions",
+    "github",
+    "api",
+    "proxy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+} 
