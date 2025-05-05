@@ -2,24 +2,27 @@ const fetch = require('node-fetch');
 
 module.exports = async function (context, req) {
     try {
-        // Get GitHub ClientID and ClientSecret from environment variables
+        // Get GitHub token from environment variables
+        // We'll try to get a personal access token first, then fall back to client ID/secret
+        const githubToken = process.env.GITHUB_TOKEN;
         const clientId = process.env.GITHUB_CLIENT_ID;
         const clientSecret = process.env.GITHUB_CLIENT_SECRET;
         
         // Debug log to check environment variables
         context.log.info("Environment Variables Check:");
+        context.log.info(`GITHUB_TOKEN exists: ${!!githubToken}`);
         context.log.info(`GITHUB_CLIENT_ID exists: ${!!clientId}`);
         context.log.info(`GITHUB_CLIENT_SECRET exists: ${!!clientSecret}`);
         
-        if (!clientId || !clientSecret) {
+        if (!githubToken && (!clientId || !clientSecret)) {
             context.log.error("GitHub credentials not configured");
             context.log.error("Available environment variables:");
             Object.keys(process.env).forEach(key => {
-                context.log.error(`  ${key}: ${key.includes('SECRET') ? '[REDACTED]' : 'exists'}`);
+                context.log.error(`  ${key}: ${key.includes('SECRET') || key.includes('TOKEN') ? '[REDACTED]' : 'exists'}`);
             });
             context.res = {
                 status: 500,
-                body: { error: "Server configuration error" }
+                body: { error: "Server configuration error - Missing authentication credentials" }
             };
             return;
         }
@@ -41,23 +44,32 @@ module.exports = async function (context, req) {
             }
         });
         
-        // Add authentication
-        urlObj.searchParams.append('client_id', clientId);
-        urlObj.searchParams.append('client_secret', clientSecret);
-        
         // Convert URL object back to string
         apiUrl = urlObj.toString();
         
         context.log(`Proxying request to: ${apiUrl}`);
-        context.log(`Authentication added: client_id=${clientId.substring(0, 4)}... client_secret=REDACTED`);
+        
+        // Prepare headers for API call
+        const headers = {
+            'User-Agent': 'GitHub-API-Proxy',
+            'Accept': 'application/vnd.github+json'
+        };
+        
+        // Add authentication - prefer token auth over client ID/secret
+        if (githubToken) {
+            context.log('Using token-based authentication');
+            headers['Authorization'] = `Bearer ${githubToken}`;
+        } else {
+            context.log(`Using client ID/secret authentication: client_id=${clientId.substring(0, 4)}...`);
+            // Add auth as query parameters
+            const authUrl = new URL(apiUrl);
+            authUrl.searchParams.append('client_id', clientId);
+            authUrl.searchParams.append('client_secret', clientSecret);
+            apiUrl = authUrl.toString();
+        }
         
         // Call GitHub API
-        const response = await fetch(apiUrl, {
-            headers: {
-                'User-Agent': 'GitHub-API-Proxy',
-                'Accept': 'application/vnd.github+json'
-            }
-        });
+        const response = await fetch(apiUrl, { headers });
         
         // Get the headers we want to pass through
         const rateLimit = response.headers.get('x-ratelimit-limit');
@@ -75,7 +87,7 @@ module.exports = async function (context, req) {
         }
         
         // Pass through headers for rate limiting info
-        const headers = {
+        const responseHeaders = {
             'Content-Type': response.headers.get('content-type') || 'application/json',
             'X-RateLimit-Limit': rateLimit,
             'X-RateLimit-Remaining': rateRemaining,
@@ -88,7 +100,7 @@ module.exports = async function (context, req) {
         // Return the response
         context.res = {
             status: response.status,
-            headers: headers,
+            headers: responseHeaders,
             body: data
         };
         
