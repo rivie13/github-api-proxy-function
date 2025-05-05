@@ -6,8 +6,17 @@ module.exports = async function (context, req) {
         const clientId = process.env.GITHUB_CLIENT_ID;
         const clientSecret = process.env.GITHUB_CLIENT_SECRET;
         
+        // Debug log to check environment variables
+        context.log.info("Environment Variables Check:");
+        context.log.info(`GITHUB_CLIENT_ID exists: ${!!clientId}`);
+        context.log.info(`GITHUB_CLIENT_SECRET exists: ${!!clientSecret}`);
+        
         if (!clientId || !clientSecret) {
             context.log.error("GitHub credentials not configured");
+            context.log.error("Available environment variables:");
+            Object.keys(process.env).forEach(key => {
+                context.log.error(`  ${key}: ${key.includes('SECRET') ? '[REDACTED]' : 'exists'}`);
+            });
             context.res = {
                 status: 500,
                 body: { error: "Server configuration error" }
@@ -40,6 +49,7 @@ module.exports = async function (context, req) {
         apiUrl = urlObj.toString();
         
         context.log(`Proxying request to: ${apiUrl}`);
+        context.log(`Authentication added: client_id=${clientId.substring(0, 4)}... client_secret=REDACTED`);
         
         // Call GitHub API
         const response = await fetch(apiUrl, {
