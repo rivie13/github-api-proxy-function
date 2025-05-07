@@ -17,7 +17,8 @@ A serverless Azure Function that proxies GitHub API requests and handles authent
 
 1. [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 2. [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local)
-3. A GitHub OAuth App with client ID and client secret
+3. A GitHub OAuth App with client ID and client secret (DEPRECATED)
+4. A GitHub token for authentication, token can have whatever privileges you want for your github, I suggest repo access and read access to your profile, but you can do more or less as you please.
 
 ### Local Development
 
