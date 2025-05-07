@@ -5,7 +5,8 @@ A serverless Azure Function that proxies GitHub API requests and handles authent
 ## Features
 
 - Proxies requests to GitHub API endpoints
-- Adds client_id and client_secret authentication without exposing secrets
+- Adds client_id and client_secret authentication without exposing secrets (DEPRECATED)
+- Uses tokens for authentication without exposing tokens
 - Passes through rate limit information in headers
 - Enables CORS for cross-domain access
 - Supports any GitHub API endpoint
